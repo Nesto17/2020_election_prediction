@@ -202,7 +202,7 @@ data_stack %>% as_tibble()
 
 ```{r}
 # Model Stack
-set.seed(2023)
+set.seed(2020)
 model_stack <- data_stack %>%
   blend_predictions()
 
@@ -219,8 +219,9 @@ model_stack %>% autoplot(type = "weights")
 
 ```{r}
 # Fitted Stack
-
-final_stack <- model_stack %>%
+set.seed(202)
+model_stack <- data_stack %>%
+  blend_predictions() %>%
   fit_members()
 ```
 
@@ -236,7 +237,7 @@ collect_parameters(model_stack, "cubist")
 ```
 
 ```{r}
-pred <- final_stack %>% 
+pred <- model_stack %>% 
   predict(test)
 ```
 
@@ -247,7 +248,7 @@ pred <- test %>%
 ```
 
 ```{r}
-write_csv(pred, "pred.csv")
+write_csv(pred, "pred-202-10Folds-Rmd.csv")
 ```
 
 

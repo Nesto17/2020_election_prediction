@@ -30,7 +30,7 @@ train <- train[, !(names(train) %in% cols_to_remove)]
 # ------------------------------------------------------------
 
 # Creating 10 cross-validation folds
-set.seed(2020)
+set.seed(2023)
 folds <- vfold_cv(train, v = 10, strata = percent_dem)
 
 # Preprocessing recipe
