@@ -1,0 +1,127 @@
+﻿COL_CODE,DESCRIPTION
+Id,"Identification number needed for solution submission, not a predictor of any kind"
+percent_dem,Percent voters who voted Biden
+total_votes,Total Votes Cast
+name, name of county - not a predictor - not in test set
+x0001E,Estimate:Total population
+x0002E,Estimate:Total population:Male
+x0003E,Estimate:Total population:Female
+x0005E,Estimate:Total population:Under 5 years
+x0006E,Estimate:Total population:5 to 9 years
+x0007E,Estimate:Total population:10 to 14 years
+x0008E,Estimate:Total population:15 to 19 years
+x0009E,Estimate:Total population:20 to 24 years
+x0010E,Estimate:Total population:25 to 34 years
+x0011E,Estimate:Total population:35 to 44 years
+x0012E,Estimate:Total population:45 to 54 years
+x0013E,Estimate:Total population:55 to 59 years
+x0014E,Estimate:Total population:60 to 64 years
+x0015E,Estimate:Total population:65 to 74 years
+x0016E,Estimate:Total population:75 to 84 years
+x0017E,Estimate:Total population:85 years and over
+x0018E,Estimate:Total population:Median age (years)
+x0019E,Estimate:Total population:Under 18 years
+x0020E,Estimate:Total population:16 years and over
+x0021E,Estimate:Total population:18 years and over
+x0022E,Estimate:Total population:21 years and over
+x0023E,Estimate:Total population:62 years and over
+x0024E,Estimate:Total population:65 years and over
+x0025E,Estimate:Total population:18 years and over
+x0026E,Estimate:Total population:18 years and over:Male
+x0027E,Estimate:Total population:18 years and over:Female
+x0029E,Estimate:Total population:65 years and over
+x0030E,Estimate:Total population:65 years and over:Male
+x0031E,Estimate:Total population:65 years and over:Female
+x0033E,Estimate:Total population (duplicate of x0001E)
+x0034E,Estimate:Total population:One race
+x0035E,Estimate:Total population:Two or more races
+x0036E,Estimate:Total population:One race
+x0037E,Estimate:Total population:One race:White
+x0038E,Estimate:Total population:One race:Black or African American
+x0039E,Estimate:Total population:One race:American Indian and Alaska Native
+x0040E,Estimate:Total population:One race:American Indian and Alaska Native:Cherokee tribal grouping
+x0041E,Estimate:Total population:One race:American Indian and Alaska Native:Chippewa tribal grouping
+x0042E,Estimate:Total population:One race:American Indian and Alaska Native:Navajo tribal grouping
+x0043E,Estimate:Total population:One race:American Indian and Alaska Native:Sioux tribal grouping
+x0044E,Estimate:Total population:One race:Asian
+x0045E,Estimate:Total population:One race:Asian:Asian Indian
+x0046E,Estimate:Total population:One race:Asian:Chinese
+x0047E,Estimate:Total population:One race:Asian:Filipino
+x0048E,Estimate:Total population:One race:Asian:Japanese
+x0049E,Estimate:Total population:One race:Asian:Korean
+x0050E,Estimate:Total population:One race:Asian:Vietnamese
+x0051E,Estimate:Total population:One race:Asian:Other Asian
+x0052E,Estimate:Total population:One race:Native Hawaiian and Other Pacific Islander
+x0053E,Estimate:Total population:One race:Native Hawaiian and Other Pacific Islander:Native Hawaiian
+x0054E,Estimate:Total population:One race:Native Hawaiian and Other Pacific Islander:Chamorro
+x0055E,Estimate:Total population:One race:Native Hawaiian and Other Pacific Islander:Samoan
+x0056E,Estimate:Total population:One race:Native Hawaiian and Other Pacific Islander:Other Pacific Islander
+x0057E,Estimate:Total population:One race:Some other race
+x0058E,Estimate:Total population:Two or more races
+x0059E,Estimate:Total population:Two or more races:White and Black or African American
+x0060E,Estimate:Total population:Two or more races:White and American Indian and Alaska Native
+x0061E,Estimate:Total population:Two or more races:White and Asian
+x0062E,Estimate:Total population:Two or more races:Black or African American and American Indian and Alaska Native
+x0064E,Estimate:Race alone or in combination with one or more other races:Total population:White
+x0065E,Estimate:Race alone or in combination with one or more other races:Total population:Black or African American
+x0066E,Estimate:Race alone or in combination with one or more other races:Total population:American Indian and Alaska Native
+x0067E,Estimate:Race alone or in combination with one or more other races:Total population:Asian
+x0068E,Estimate:Race alone or in combination with one or more other races:Total population:Native Hawaiian and Other Pacific Islander
+x0069E,Estimate:Race alone or in combination with one or more other races:Total population:Some other race
+x0071E,Estimate:Total population:Hispanic or Latino (of any race)
+x0072E,Estimate:Total population:Hispanic or Latino (of any race):Mexican
+x0073E,Estimate:Total population:Hispanic or Latino (of any race):Puerto Rican
+x0074E,Estimate:Total population:Hispanic or Latino (of any race):Cuban
+x0075E,Estimate:Total population:Hispanic or Latino (of any race):Other Hispanic or Latino
+x0076E,Estimate:Total population:Not Hispanic or Latino
+x0077E,Estimate:Total population:Not Hispanic or Latino:White alone
+x0078E,Estimate:Total population:Not Hispanic or Latino:Black or African American alone
+x0079E,Estimate:Total population:Not Hispanic or Latino:American Indian and Alaska Native alone
+x0080E,Estimate:Total population:Not Hispanic or Latino:Asian alone
+x0081E,Estimate:Total population:Not Hispanic or Latino:Native Hawaiian and Other Pacific Islander alone
+x0082E,Estimate:Total population:Not Hispanic or Latino:Some other race alone
+x0083E,Estimate:Total population:Not Hispanic or Latino:Two or more races
+x0084E,Estimate:Total population:Not Hispanic or Latino:Two or more races:Two races including Some other race
+x0085E,"Estimate:Total population:Not Hispanic or Latino:Two or more races:Two races excluding Some other race, and Three or more races"
+x0086E,Estimate:Total housing units
+x0087E,"Estimate:Citizen, 18 and over population"
+x0088E,"Estimate:Citizen, 18 and over population:Male"
+x0089E,"Estimate:Citizen, 18 and over population:Female"
+C01_001E,Estimate:Total:Population 18 to 24 years
+C01_002E,Estimate:Total:Population 18 to 24 years:Less than high school graduate
+C01_003E,Estimate:Total:Population 18 to 24 years:High school graduate (includes equivalency)
+C01_004E,Estimate:Total:Population 18 to 24 years:Some college or associate's degree
+C01_005E,Estimate:Total:Population 18 to 24 years:Bachelor's degree or higher
+C01_006E,Estimate:Total:Population 25 years and over
+C01_007E,Estimate:Total:Population 25 years and over:Less than 9th grade
+C01_008E,"Estimate:Total:Population 25 years and over:9th to 12th grade, no diploma"
+C01_009E,Estimate:Total:Population 25 years and over:High school graduate (includes equivalency)
+C01_010E,"Estimate:Total:Population 25 years and over:Some college, no degree"
+C01_011E,Estimate:Total:Population 25 years and over:Associate's degree
+C01_012E,Estimate:Total:Population 25 years and over:Bachelor's degree
+C01_013E,Estimate:Total:Population 25 years and over:Graduate or professional degree
+C01_014E,Estimate:Total:Population 25 years and over:High school graduate or higher
+C01_015E,Estimate:Total:Population 25 years and over:Bachelor's degree or higher
+C01_016E,Estimate:Total:Population 25 to 34 years
+C01_017E,Estimate:Total:Population 25 to 34 years:High school graduate or higher
+C01_018E,Estimate:Total:Population 25 to 34 years:Bachelor's degree or higher
+C01_019E,Estimate:Total:Population 35 to 44 years
+C01_020E,Estimate:Total:Population 35 to 44 years:High school graduate or higher
+C01_021E,Estimate:Total:Population 35 to 44 years:Bachelor's degree or higher
+C01_022E,Estimate:Total:Population 45 to 64 years
+C01_023E,Estimate:Total:Population 45 to 64 years:High school graduate or higher
+C01_024E,Estimate:Total:Population 45 to 64 years:Bachelor's degree or higher
+C01_025E,Estimate:Total:Population 65 years and over
+C01_026E,Estimate:Total:Population 65 years and over:High school graduate or higher
+C01_027E,Estimate:Total:Population 65 years and over:Bachelor's degree or higher
+income_per_cap_2016, income per capita for the county in 2016 (missing for some counties)
+income_per_cap_2017, income per capita for the county in 2017 (missing for some counties)
+income_per_cap_2018, income per capita for the county in 2018 (missing for some counties)
+income_per_cap_2019, income per capita for the county in 2019 (missing for some counties)
+income_per_cap_2020, income per capita for the county in 2020 (missing for some counties)
+gdp_2016, GDP for the county in 2016 (missing for some counties)
+gdp_2017, GDP for the county in 2017 (missing for some counties)
+gdp_2018, GDP for the county in 2018 (missing for some counties)
+gdp_2019, GDP for the county in 2019 (missing for some counties)
+gdp_2020, GDP for the county in 2020 (missing for some counties)
+x2013_code, urban/rural code used by CDC 1 is most urban 6 is most rural https://www.cdc.gov/nchs/data_access/urban_rural.htm

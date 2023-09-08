@@ -1,0 +1,132 @@
+---
+title: "Model Testing - GLM"
+author: "ernestsalim"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidymodels)
+library(tidyverse)
+library(Cubist)
+library(rules)
+```
+
+```{r}
+train <- read_csv("train_25.csv")
+test <- read_csv("test.csv")
+```
+
+```{r}
+train %>% head()
+```
+
+```{r}
+set.seed(101)
+folds <- vfold_cv(train, v = 10, strata = percent_dem)
+```
+
+```{r}
+spec <- cubist_rules(
+    committees = 83,
+    neighbors = 9,
+    max_rules = 101
+  ) %>%
+  set_engine("Cubist") %>%
+  set_mode("regression")
+
+recipe <- recipe(percent_dem ~ ., data = train) %>% 
+  step_impute_mean(all_numeric_predictors()) %>% 
+  step_mutate(x2013_code = factor(x2013_code)) %>% 
+  step_corr(all_numeric_predictors(), threshold = 0.999) %>% 
+  step_nzv(all_numeric_predictors()) %>% 
+  step_log(all_numeric_predictors(), offset = 1) %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_dummy(all_nominal())
+
+workflow <- workflow() %>% 
+  add_recipe(recipe) %>% 
+  add_model(spec)
+```
+
+## Without Tuning
+
+```{r}
+# Without Tuning
+fit <- workflow %>% 
+  fit_resamples(resamples = folds, control = control_grid(verbose = TRUE))
+show_notes(.Last.tune.result)
+```
+
+```{r}
+fit %>% collect_metrics()
+```
+
+```{r}
+fitted_workflow <- workflow %>% fit(train)
+```
+
+```{r}
+pred <- fitted_workflow %>% predict(new_data = test)
+```
+
+```{r}
+pred <- test %>% 
+  select(id) %>% 
+  bind_cols(pred)
+```
+
+```{r}
+write_csv(pred, "pred-cubist.csv")
+```
+
+## With Tuning
+
+```{r}
+# Random Tuning Grid
+set.seed(101)
+grid <- grid_random(parameters(spec), size = 10)
+```
+
+```{r}
+fit <- workflow %>% 
+  tune_grid(resamples = folds,
+            grid = grid,
+            control = control_grid(verbose = TRUE))
+show_notes(.Last.tune.result)
+```
+
+```{r}
+fit %>% collect_metrics() %>% arrange(mean) %>% filter(.metric == "rmse")
+```
+
+```{r}
+best_params <- fit %>%
+  select_best(metric = "rmse") 
+
+best_workflow <- workflow %>% 
+  finalize_workflow(best_params)
+
+best_workflow
+```
+
+
+```{r}
+fitted_workflow <- best_workflow %>% fit(train)
+pred <- fitted_workflow %>% predict(new_data = test)
+```
+
+```{r}
+pred <- test %>% 
+  select(id) %>% 
+  bind_cols(pred)
+write_csv(pred, "pred.csv")
+```
+
+```{r}
+pred
+```

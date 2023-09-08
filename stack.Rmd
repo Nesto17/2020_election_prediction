@@ -1,0 +1,257 @@
+---
+title: "Models Ensemble"
+author: "ernestsalim"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidymodels)
+library(stacks)
+library(tune)
+library(rsample)
+library(parsnip)
+library(workflows)
+library(recipes)
+library(yardstick)
+
+library(tidyverse)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+
+library(xgboost)
+library(lightgbm)
+library(glmnet)
+library(kernlab)
+library(ranger)
+library(dbarts)
+library(bonsai)
+library(mgcv)
+library(LiblineaR)
+library(Cubist)
+library(rules)
+```
+
+```{r}
+train <- read_csv("train_25.csv")
+test <- read_csv("test.csv")
+```
+
+```{r}
+set.seed(2020)
+folds <- vfold_cv(train, v = 10, strata = percent_dem)
+
+rec <- recipe(percent_dem ~ ., data = train) %>% 
+  step_impute_mean(all_numeric_predictors()) %>% 
+  step_mutate(x2013_code = factor(x2013_code)) %>% 
+  step_corr(all_numeric_predictors(), threshold = 0.999) %>% 
+  step_nzv(all_numeric_predictors()) %>% 
+  step_log(all_numeric_predictors(), offset = 1) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal())
+
+metric <- metric_set(rmse, rsq)
+```
+
+```{r}
+ctrl_grid <- control_stack_grid()
+ctrl_res <- control_stack_resamples()
+```
+
+```{r}
+# Model Specs
+
+# Model 1 - XGBoost
+xgboost_spec <- boost_tree(
+    trees = 888,
+    min_n = 39,
+    tree_depth = 12,
+    learn_rate = 0.09
+  ) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+# Model 2 - Light GBM
+lightgbm_spec <- parsnip::boost_tree(
+    trees = 1000,
+    tree_depth = 13, 
+    min_n = 20
+  ) %>%
+  set_engine("lightgbm") %>%
+  set_mode("regression")
+
+# Model 3 - BART
+bart_spec <- parsnip::bart(
+  trees = 333,
+  prior_terminal_node_coef = 0.978,
+  prior_terminal_node_expo = 2.28
+) %>% 
+  set_engine("dbarts") %>% 
+  set_mode("regression")
+
+# Model 4 - Random Forest
+randforest_spec <- parsnip::rand_forest(
+    trees = 1510,
+    min_n = 2
+  ) %>%
+  set_engine("ranger") %>%
+  set_mode("regression")
+
+# Model 5 - GLM Net
+glmnet_spec <- parsnip::linear_reg(
+    penalty = 0.01, 
+    mixture = 0.9
+  ) %>%
+  set_engine("glmnet") %>% 
+  set_mode("regression")
+
+# Model 6 - SVM with Radial Kernel
+svmrbf_spec <- parsnip::svm_rbf(
+    cost = 40,
+    rbf_sigma = 0.005,
+    margin = 0.015
+  ) %>% 
+  set_engine("kernlab") %>% 
+  set_mode("regression")
+
+# Model 7 - Linear SVM
+svmlin_spec <- parsnip::svm_linear(
+    cost = 5,
+    margin = 0.14
+  ) %>% 
+  set_engine("LiblineaR") %>% 
+  set_mode("regression")
+
+# Model 8 - Cubist rule-based Regression
+cubist_spec <- parsnip::cubist_rules(
+    committees = 83,
+    neighbors = 0,
+    max_rules = 101
+  ) %>% 
+  set_engine("Cubist") %>% 
+  set_mode("regression")
+
+model_specs <- list(xgboost_spec, lightgbm_spec, bart_spec, randforest_spec,
+                    glmnet_spec, svmrbf_spec, svmlin_spec, cubist_spec)
+names(model_specs) <- c("xgboost", "lightgbm", "bart", "randforest",
+                        "glmnet", "svmrbf", "svmlin", "cubist")
+
+```
+
+```{r}
+# Workflows
+
+wfls <- list()
+for (spec in names(model_specs)) {
+  wfl <- workflow() %>% 
+    add_model(model_specs[[spec]]) %>% 
+    add_recipe(rec)
+  
+  wfl_name <- paste(c(spec, "_wfl"), collapse = "")
+  wfls[[wfl_name]] <- wfl
+}
+```
+
+```{r}
+# Fit Resamples
+
+results <- list()
+for (wfl in names(wfls)) {
+  res <- wfls[[wfl]] %>% fit_resamples(
+    resamples = folds,
+    metrics = metric,
+    control = ctrl_res
+  )
+  
+  res_name <- paste(c(wfl, "res"), collapse = "")
+  results[[res_name]] <- res
+}
+```
+
+```{r}
+# Data Stack
+
+xgboost <- results$xgboost_wflres
+lightgbm <- results$lightgbm_wflres
+bart <- results$bart_wflres
+randforest <- results$randforest_wflres
+glmnet <- results$glmnet_wflres
+svm_rbf <- results$svmrbf_wflres
+svm_lin <- results$svmlin_wflres
+cubist <- results$cubist_wflres
+
+data_stack <- stacks() %>% 
+  add_candidates(xgboost) %>% 
+  add_candidates(lightgbm) %>% 
+  add_candidates(bart) %>% 
+  add_candidates(randforest) %>% 
+  add_candidates(glmnet) %>% 
+  add_candidates(svm_rbf) %>% 
+  add_candidates(svm_lin) %>% 
+  add_candidates(cubist)
+```
+
+```{r}
+data_stack %>% as_tibble()
+```
+
+```{r}
+# Model Stack
+set.seed(2023)
+model_stack <- data_stack %>%
+  blend_predictions()
+
+model_stack %>% autoplot()
+```
+
+```{r}
+model_stack %>% autoplot(type = "members")
+```
+
+```{r}
+model_stack %>% autoplot(type = "weights")
+```
+
+```{r}
+# Fitted Stack
+
+final_stack <- model_stack %>%
+  fit_members()
+```
+
+```{r}
+collect_parameters(model_stack, "xgboost")
+collect_parameters(model_stack, "lightgbm")
+collect_parameters(model_stack, "bart")
+collect_parameters(model_stack, "randforest")
+collect_parameters(model_stack, "glmnet")
+collect_parameters(model_stack, "svm_rbf")
+collect_parameters(model_stack, "svm_lin")
+collect_parameters(model_stack, "cubist")
+```
+
+```{r}
+pred <- final_stack %>% 
+  predict(test)
+```
+
+```{r}
+pred <- test %>% 
+  select(id) %>% 
+  bind_cols(pred)
+```
+
+```{r}
+write_csv(pred, "pred.csv")
+```
+
+
+
+
+
+

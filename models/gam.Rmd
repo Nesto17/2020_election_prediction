@@ -1,0 +1,111 @@
+---
+title: "Model Testing - GAM"
+author: "ernestsalim"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidymodels)
+library(tidyverse)
+library(mgcv)
+```
+
+```{r}
+train <- read_csv("train_25.csv")
+test <- read_csv("test.csv")
+```
+
+```{r}
+train %>% head()
+```
+
+```{r}
+set.seed(101)
+# train[train == 0] <- NA
+# test[test == 0] <- NA
+folds <- vfold_cv(train, v = 3, strata = percent_dem)
+```
+
+```{r}
+spec <- gen_additive_mod() %>%
+  set_engine("mgcv") %>%
+  set_mode("regression")
+
+recipe <- recipe(percent_dem ~ ., data = train) %>% 
+  step_rm(x0025e, x0029e, x0036e, x0058e, c01_025e, c01_019e, c01_016e, x0033e) %>% 
+  step_mutate(x2013_code = factor(x2013_code)) %>% 
+  step_impute_mean(all_numeric_predictors()) %>% 
+  step_zv(all_numeric_predictors()) %>% 
+  step_YeoJohnson(all_numeric_predictors()) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal()) 
+  # step_interact(terms = ~ starts_with("gdp"):starts_with("x2013")) %>% 
+  # step_interact(terms = ~ starts_with("income"):starts_with("x2013"))
+  # step_interact(terms = ~ starts_with("C01"):starts_with("x2013_code"))
+
+workflow <- workflow() %>% 
+  add_recipe(recipe) %>% 
+  add_model(spec)
+```
+
+```{r}
+x <- recipe %>% prep() %>% juice()
+model <- spec %>% fit(percent_dem ~ ., x)
+```
+
+
+## Without Tuning
+
+```{r}
+# Without Tuning
+fit <- workflow %>% 
+  fit_resamples(resamples = folds, control = control_grid(verbose = TRUE))
+show_notes(.Last.tune.result)
+```
+
+```{r}
+fit %>% collect_metrics()
+```
+
+```{r}
+fitted_workflow <- workflow %>% fit(train)
+```
+
+```{r}
+pred <- fitted_workflow %>% predict(new_data = test)
+```
+
+```{r}
+pred <- test %>% 
+  select(id) %>% 
+  bind_cols(pred)
+```
+
+```{r}
+write_csv(pred, "pred.csv")
+```
+
+## With Tuning
+
+```{r}
+# Random Tuning Grid
+set.seed(214)
+grid <- grid_random(parameters(spec), size = 20)
+```
+
+```{r}
+fit <- workflow %>% 
+  tune_grid(resamples = folds,
+            grid = grid,
+            control = control_grid(verbose = TRUE))
+show_notes(.Last.tune.result)
+```
+
+```{r}
+fit %>% collect_metrics() 
+```

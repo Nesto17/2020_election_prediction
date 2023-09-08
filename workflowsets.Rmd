@@ -1,0 +1,322 @@
+---
+title: "Workflowsets"
+author: "ernestsalim"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidymodels)
+library(tidyverse)
+library(car)
+
+library(parsnip)
+library(recipes)
+library(yardstick)
+library(dials)
+library(tune)
+library(workflowsets)
+
+library(xgboost)
+library(lightgbm)
+library(glmnet)
+library(kernlab)
+library(ranger)
+library(dbarts)
+library(bonsai)
+library(mgcv)
+library(LiblineaR)
+library(Cubist)
+library(rules)
+```
+
+```{r}
+train <- read_csv("train_25.csv")
+test <- read_csv("test.csv")
+```
+
+## Workflowsets
+
+```{r}
+# V-Folds CV
+set.seed(2023)
+folds <- vfold_cv(train, v = 10, strata = percent_dem)
+```
+
+```{r}
+# Preprocessing
+
+rec <- recipe(percent_dem ~ ., data = train) %>% 
+  step_impute_mean(all_numeric_predictors()) %>% 
+  step_mutate(x2013_code = factor(x2013_code)) %>% 
+  step_corr(all_numeric_predictors(), threshold = 0.999) %>% 
+  step_nzv(all_numeric_predictors()) %>% 
+  step_log(all_numeric_predictors(), offset = 1) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal())
+```
+
+```{r}
+# Models Spec
+
+# Model 1 - XGBoost
+xgboost_spec <- boost_tree(
+    trees = 888,
+    min_n = 39,
+    tree_depth = 12,
+    learn_rate = 0.09
+  ) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+# Model 2 - Light GBM
+lightgbm_spec <- parsnip::boost_tree(
+    trees = 1000,
+    tree_depth = 13, 
+    min_n = 20
+  ) %>%
+  set_engine("lightgbm") %>%
+  set_mode("regression")
+
+# Model 3 - BART
+bart_spec <- parsnip::bart(
+  trees = 333,
+  prior_terminal_node_coef = 0.978,
+  prior_terminal_node_expo = 2.28
+) %>% 
+  set_engine("dbarts") %>% 
+  set_mode("regression")
+
+# Model 4 - Random Forest
+randforest_spec <- parsnip::rand_forest(
+    trees = 1510,
+    min_n = 2
+  ) %>%
+  set_engine("ranger") %>%
+  set_mode("regression")
+
+# Model 5 - GLM Net
+glmnet_spec <- parsnip::linear_reg(
+    penalty = 0.01, 
+    mixture = 0.9
+  ) %>%
+  set_engine("glmnet") %>% 
+  set_mode("regression")
+
+# Model 6 - SVM with Radial Kernel
+svmrbf_spec <- parsnip::svm_rbf(
+    cost = 40,
+    rbf_sigma = 0.005,
+    margin = 0.015
+  ) %>% 
+  set_engine("kernlab") %>% 
+  set_mode("regression")
+
+# Model 7 - Linear SVM
+svmlin_spec <- parsnip::svm_linear(
+    cost = 5,
+    margin = 0.14
+  ) %>% 
+  set_engine("LiblineaR") %>% 
+  set_mode("regression")
+
+# Model 8 - Cubist rule-based Regression
+cubist_spec <- parsnip::cubist_rules(
+    committees = 83,
+    neighbors = 0,
+    max_rules = 101
+  ) %>% 
+  set_engine("Cubist") %>% 
+  set_mode("regression")
+```
+
+```{r}
+xgboost_spec <- boost_tree(
+    trees = tune("trees"),
+    min_n = tune("min_n"),
+    tree_depth = tune("tree_depth"),
+    learn_rate = tune("learn_rate")
+  ) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+# Model 2 - Light GBM
+lightgbm_spec <- parsnip::boost_tree(
+    trees = tune("trees"),
+    tree_depth = tune("tree_depth"), 
+    min_n = tune("min_n")
+  ) %>%
+  set_engine("lightgbm") %>%
+  set_mode("regression")
+
+# Model 3 - BART
+bart_spec <- parsnip::bart(
+  trees = tune("trees"),
+  prior_terminal_node_coef = tune("prior_terminal_node_coef"),
+  prior_terminal_node_expo = tune("prior_terminal_node_expo")
+) %>% 
+  set_engine("dbarts") %>% 
+  set_mode("regression")
+
+# Model 4 - Random Forest
+randforest_spec <- parsnip::rand_forest(
+    mtry = tune("mtry"),
+    trees = tune("trees"),
+    min_n = tune("min_n"),
+  ) %>%
+  set_engine("ranger") %>%
+  set_mode("regression")
+
+# Model 5 - GLM Net
+glmnet_spec <- parsnip::linear_reg(
+    penalty = tune("penalty"), 
+    mixture = tune("mixture")
+  ) %>%
+  set_engine("glmnet") %>% 
+  set_mode("regression")
+
+# Model 6 - SVM with Radial Kernel
+svmrbf_spec <- parsnip::svm_rbf(
+    cost = tune("cost"),
+    rbf_sigma = tune("rbf_sigma"),
+    margin = tune("margin")
+  ) %>% 
+  set_engine("kernlab") %>% 
+  set_mode("regression")
+
+# Model 7 - SVM with Linear 
+svmlin_spec <- parsnip::svm_linear(
+    cost = tune("cost"),
+    margin = tune("margin")
+  ) %>% 
+  set_engine("LiblineaR") %>% 
+  set_mode("regression")
+
+# Model 8 - Cubist rule-based Regression
+cubist_spec <- parsnip::cubist_rules(
+    committees = tune("committees"),
+    neighbors = tune("neighbors"),
+    max_rules = tune("max_rules")
+  ) %>% 
+  set_engine("Cubist") %>% 
+  set_mode("regression")
+```
+
+```{r}
+wfl <- workflow_set(
+    preproc = list(mod = rec),
+    models = list(xgboost = xgboost_spec,
+                  lightgbm = lightgbm_spec,
+                  bart = bart_spec,
+                  randforest = randforest_spec,
+                  glmnet = glmnet_spec,
+                  svmrbf = svmrbf_spec,
+                  svmlin = svmlin_spec,
+                  cubist = cubist_spec),
+    cross = TRUE
+  ) %>% option_add(control = control_grid(save_workflow = TRUE, 
+                                          save_pred = TRUE, verbose = TRUE))
+
+wfl
+```
+
+## Tuning Flow
+
+```{r}
+set.seed(2023)
+wfl_tuned <- wfl %>% workflow_map("fit_resamples", resamples = folds, 
+                         metrics = metric_set(rmse), verbose = TRUE)
+```
+
+```{r}
+wfl_tuned %>% collect_metrics() %>% arrange(mean) 
+```
+
+```{r}
+wfl_tuned %>% workflowsets::autoplot()
+```
+
+```{r}
+rank_results(wfl_tuned, rank_metric = "rmse", select_best = TRUE)
+```
+
+```{r}
+trained_wfl <- wfl_tuned %>% fit_best()
+```
+
+```{r}
+trained_wfl_result <- wfl_tuned %>% 
+  extract_workflow_set_result("mod_cubist")
+```
+
+```{r}
+ trained_wfl_result$.metrics
+```
+
+```{r}
+for (i in trained_wfl_result$.metrics) {
+  print(i %>% arrange(.estimate))
+}
+```
+
+```{r}
+trained_wfl 
+# trained_wfl %>% extract_parameter_set_dials() %>% extract_parameter_dials("")
+```
+
+
+```{r}
+pred <- trained_wfl %>% predict(new_data = test)
+
+pred <- test %>% 
+  select(id) %>% 
+  bind_cols(pred)
+```
+
+```{r}
+write_csv(pred, "pred-cubist.csv")
+```
+
+
+
+## Fitting Flow
+
+```{r}
+wfl_eval <- wfl %>% workflow_map("fit_resamples", resamples = folds, 
+                         metrics = metric_set(rmse), verbose = TRUE)
+```
+
+```{r}
+wfl_eval %>% collect_metrics()
+```
+
+```{r}
+wfl_eval %>% workflowsets::autoplot()
+```
+
+```{r}
+rank_results(wfl_eval, rank_metric = "rmse", select_best = TRUE)
+```
+
+```{r}
+trained_wfl <- wfl_eval %>% fit_best()
+```
+
+```{r}
+trained_wfl_result <- wfl_eval %>% 
+  extract_workflow_set_result("mod_svmrbf")
+```
+
+
+
+
+
+
+
+
+
+

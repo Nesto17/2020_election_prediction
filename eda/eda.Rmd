@@ -1,0 +1,232 @@
+---
+title: "EDA Final Project"
+author: "Aldo Untoro"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+library(tidymodels)
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+library(hrbrthemes)
+library(maps)
+library(mapdata)
+library(ggplot2)
+library(reshape2)
+```
+
+```{r}
+train <- read.csv("train.csv")
+numeric <- train %>% 
+  select(-c("id", "name", "x2013_code"))
+```
+
+```{r}
+skewness <- numeric %>% apply(2, skewness, na.rm = TRUE)
+```
+
+```{r}
+train <- train %>% 
+  separate(name, into = c("city", "state"), sep = ",\\s*") %>% 
+  mutate(state = factor(state), x2013_code = factor(x2013_code)) %>% 
+  select(-city)
+```
+
+```{r}
+train
+```
+
+```{r}
+rf_recipe_1 <- recipe(percent_dem ~ ., data = train) %>% 
+  step_rm(id) %>%                                        
+  step_impute_mean(income_per_cap_2016, income_per_cap_2017, income_per_cap_2018, income_per_cap_2019, income_per_cap_2020, gdp_2016, gdp_2017, gdp_2018, gdp_2019, gdp_2020)
+
+rf_recipe_2 <- recipe(percent_dem ~ ., data = train) %>% 
+  step_rm(id) %>%                                        
+  step_impute_mean(income_per_cap_2016, income_per_cap_2017, income_per_cap_2018, income_per_cap_2019, income_per_cap_2020, gdp_2016, gdp_2017, gdp_2018, gdp_2019, gdp_2020) %>% 
+  #step_normalize() %>%
+  #step_zv() %>%
+  step_log(all_numeric_predictors()) 
+  
+n_train <- rf_recipe_1 %>% prep() %>% bake(new_data = NULL)
+t_train <- rf_recipe_2 %>% prep() %>% bake(new_data = NULL)
+```
+
+```{r}
+t_train %>% head()
+```
+
+
+```{r}
+p1 <- ggplot(n_train, aes(x = x0021e, y = percent_dem)) + 
+  geom_point(color="#69b3a2") +
+  labs(title = "Percent_dem and Population Over 18 Years", x = "Population") +
+  theme(plot.title = element_text(size = 8.5))
+
+p2 <- ggplot(n_train, aes(x = x0021e/x0001e * 100, y = percent_dem)) +
+  geom_point(color="#69b3a2") +
+  labs(title = "Percent_dem and Population Over 18 Years in %", x = "Population") +
+  theme(plot.title = element_text(size = 8.5))
+
+p3 <-  ggplot(t_train, aes(x = x0021e, y = percent_dem)) +
+  geom_point(color="#69b3a2") +
+  labs(title = "Percent_dem and Logged Population Over 18 Years", x = "Population") +
+  theme(plot.title = element_text(size = 8.5))
+
+p4 <- ggplot(t_train, aes(x = x0021e/x0001e * 100, y = percent_dem)) +
+  geom_point(color="#69b3a2") +
+  labs(title = "Percent_dem and Logged Population Over 18 Years in %", x = "Population") +
+  theme(plot.title = element_text(size = 8.5))
+  
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+```
+
+```{r}
+p1 <- ggplot(n_train, aes(x = x0087e, y = total_votes)) + 
+  geom_point(color="coral3") +
+  labs(title = "Total Votes and Citizen Over 18 Years", x = "Citizen", y = "Total Votes") +
+  theme(plot.title = element_text(size = 9.2))
+
+p2 <- ggplot(n_train, aes(x = log(x0087e), y = log(total_votes))) +
+  geom_point(color="coral3") +
+  labs(title = "Logged Total Votes and Logged Citizen Over 18 Years", x = "Logged Citizen", y = "Logged Total Votes") +
+  theme(plot.title = element_text(size = 9.2))
+
+grid.arrange(p1, p2, ncol = 2)
+
+```
+
+
+
+
+
+```{r}
+p11 <- ggplot(n_train, aes(x = gdp_2020 , y = total_votes)) + 
+  geom_point(color = "bisque2") +
+  labs(title = "Total Votes and GDP 2020", x = "GDP 2020", y = "Total Votes") +
+  theme(plot.title = element_text(size = 12))
+
+p12 <- ggplot(t_train, aes(x = gdp_2020, y = total_votes)) +
+  geom_point(color = "bisque2") +
+  labs(title = "Logged Total Votes and GDP 2020", x = "Logged GDP 2020", y = "Logged Total Votes") +
+  theme(plot.title = element_text(size = 12))
+
+grid.arrange(p11, p12, ncol = 2)
+
+```
+
+```{r}
+p13 <- ggplot(n_train, aes(x = gdp_2020, y = percent_dem)) + 
+  geom_point( color = "salmon") +
+  labs(title = "Percent_dem and GDP 2020", x = "GDP 2020", y = "Dem Voters Proportion") +
+  theme(plot.title = element_text(size = 12))
+
+p14 <- ggplot(t_train, aes(x = gdp_2020, y = percent_dem)) + 
+  geom_point(color = "salmon") +
+  labs(title = "Percent_dem and Logged GDP 2020", x = "Logged GDP 2020", y = "Dem Voters Proportion") +
+  theme(plot.title = element_text(size = 12))
+
+grid.arrange(p13, p14, ncol = 2)
+```
+
+```{r}
+p14 <- ggplot(n_train, aes(x = income_per_cap_2020, y = percent_dem)) + 
+  geom_point( color = "darkgreen") +
+  labs(title = "Percent_dem and Income 2020", x = "Income per Capita 2020", y = "Dem Voters Proportion") +
+  theme(plot.title = element_text(size = 12))
+
+p15 <- ggplot(t_train, aes(x = income_per_cap_2020, y = percent_dem)) + 
+  geom_point( color = "darkgreen") +
+  labs(title = "Percent_dem and Logged Income 2020", x = "Logged Income per Capita 2020", y = "Dem Voters Proportion") +
+  theme(plot.title = element_text(size = 12))
+  
+grid.arrange(p14, p15, ncol = 2)
+```
+
+```{r}
+p16 <- ggplot(n_train, aes(x = x0087e, y = percent_dem)) + 
+  geom_point(color = "pink2") +
+  labs(title = "Percent_dem and Citizen Over 18 Years", x = "Citizen", y = "Dem Voters Proportion") +
+  theme(plot.title = element_text(size = 10))
+
+p17 <- ggplot(n_train, aes(x = log(x0087e), y = percent_dem)) +
+  geom_point(color = "pink2") +
+  labs(title = "Percent_dem and Logged Citizen Over 18 Years", x = "Citizen", y = "Dem Voters Proportion") +
+  theme(plot.title = element_text(size = 10))
+
+grid.arrange(p16, p17, ncol = 2)
+
+
+```
+
+
+```{r}
+p20 <- ggplot(n_train, aes(x = income_per_cap_2020, y = total_votes)) + 
+  geom_point(color = "darkseagreen3") +
+  labs(title = "Total Votes and Income per Capita 2020", x = "Income", y = "Total Votes") +
+  theme(plot.title = element_text(size = 10))
+
+p21 <- ggplot(t_train, aes(x = income_per_cap_2020, y = total_votes)) +
+  geom_point(color = "darkseagreen3") +
+  labs(title = "Total Votes and Logged Income per Capita 2020", x = "Logged Income", y = "Logged Total Votes") +
+  theme(plot.title = element_text(size = 10))
+
+grid.arrange(p20, p21, ncol = 2)
+
+```
+
+```{r}
+total_data <- data.frame(
+  Gender = c("Male", "Female"),
+  Total = c(sum(n_train$x0088e), sum(n_train$x0089e))
+)
+
+# Print the summarized dataframe
+print(total_data)
+```
+
+
+```{r}
+colors <- c("Male" = "darkseagreen1", "Female" = "salmon")
+
+# Create the bar chart
+ggplot(total_data, aes(x = Gender, y = Total, fill = Gender)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Citizen Over 18 Years by Gender", x = "Gender", y = "Count")  +  
+  scale_fill_manual(values = colors) 
+```
+
+
+
+
+
+```{r}
+colors <- c("1" = "cornsilk1", "2" = "darkseagreen1", "3" = "salmon", "4" = "orchid", "5" = "cadetblue1", "6" = "deeppink1")
+
+percent_code <- ggplot(n_train, aes(x = x2013_code, y = percent_dem, fill = x2013_code)) + 
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(aes(colour = factor(x2013_code)), width = 0.2) +  
+  scale_fill_manual(values = colors) +
+  scale_colour_manual(values = colors) +  
+  labs(title = "Boxplot of Rural or Urban Code", x = "Urban or Rural Code", y = "Percentage Democratic") + 
+  theme_ipsum()
+
+print(percent_code)
+
+```
+
+
+
+
+

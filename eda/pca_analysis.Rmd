@@ -1,0 +1,104 @@
+---
+title: "PCA Analysis"
+author: "ernestsalim"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(pls)
+library(tidyverse)
+library(tidymodels)
+library(workflowsets)
+```
+
+```{r}
+train <- read_csv("train_25.csv")
+test <- read_csv("test.csv")
+```
+
+```{r}
+rec <- recipe(percent_dem ~ ., data = train) %>% 
+  step_mutate(x2013_code = factor(x2013_code)) %>% 
+  step_impute_mean(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal()) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
+  step_pca(starts_with("x00"), num_comp = tune())
+
+x <- rec %>% 
+  prep() %>% 
+  juice()
+
+y <- rec %>% 
+  prep() %>% 
+  bake(new_data = test)
+```
+
+```{r}
+x %>% head()
+```
+
+
+```{r}
+x %>% select(x0021e, x0025e, x0024e, x0029e, x0034e, x0036e, x0035e, x0058e)
+```
+
+
+```{r}
+pca_result <- prcomp(data, scale = TRUE)
+
+prop_var <- pca_result$sdev^2 / sum(pca_result$sdev^2)
+prop_var
+```
+
+```{r}
+pca_result <- cor(data) %>% princomp()
+
+pca_result %>% summary()
+```
+
+```{r}
+pca_result$loadings[, 1:6]
+```
+
+```{r}
+set.seed(1)
+
+model <- pcr(percent_dem ~ ., data=x, scale=TRUE, validation="CV")
+```
+
+```{r}
+summary(model)
+```
+
+```{r}
+par(mfrow = c(1, 2))
+validationplot(model, val.type = "RMSEP")
+validationplot(model, val.type = "R2")
+```
+
+```{r}
+pred <- model %>% predict(y, ncomp = 7)
+```
+
+```{r}
+pred <- test %>% 
+  select(id) %>% 
+  bind_cols(tibble(pred))
+
+pred$pred <- sapply(pred$pred, as.numeric)
+```
+
+```{r}
+write_csv(pred, "pred_pca.csv")
+```
+
+
+```{r}
+pred
+```
+

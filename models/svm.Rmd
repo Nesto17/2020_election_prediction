@@ -1,0 +1,172 @@
+---
+title: "Model Testing - SVM"
+author: "ernestsalim"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidymodels)
+library(tidyverse)
+library(e1071)
+library(kernlab)
+```
+
+```{r}
+train <- read_csv("train_5.csv")
+test <- read_csv("test.csv")
+```
+
+```{r}
+train %>% head()
+```
+
+
+```{r}
+set.seed(101)
+folds <- vfold_cv(train, v = 10, strata = percent_dem)
+```
+
+```{r}
+excluded <- c("percent_dem", "income_per_cap_2016", "income_per_cap_2017", "income_per_cap_2018", 
+                 "income_per_cap_2019", "income_per_cap_2020", "x2013_code")
+
+spec <- svm_rbf(
+    # cost = tune(),
+    # rbf_sigma = tune(),
+    # margin = tune()
+    cost = 40,
+    rbf_sigma = 0.005,
+    margin = 0.015
+  ) %>%
+  set_engine("kernlab") %>%
+  set_mode("regression")
+
+rec <- recipe(percent_dem ~ ., data = train) %>% 
+  step_impute_mean(all_numeric_predictors()) %>% 
+  step_mutate(x2013_code = factor(x2013_code)) %>% 
+  step_corr(all_numeric_predictors(), threshold = 0.999) %>% 
+  step_nzv(all_numeric_predictors()) %>% 
+  # step_YeoJohnson(!all_of(excluded)) %>% 
+  step_log(all_numeric_predictors(), offset = 1) %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_dummy(all_nominal())
+
+# rec <- recipe(percent_dem ~ ., data = train) %>% 
+#   step_impute_mean(all_numeric_predictors()) %>% 
+#   step_mutate(x2013_code = factor(x2013_code)) %>% 
+#   step_corr(all_numeric_predictors(), threshold = 0.999) %>% 
+#   step_zv(all_numeric_predictors()) %>% 
+#   # step_YeoJohnson(all_numeric_predictors()) %>%
+#   step_log(!all_of(excluded), offset = 1) %>%
+#   step_normalize(all_numeric_predictors()) %>% 
+#   step_dummy(all_nominal())
+#   # step_interact(terms = ~ starts_with("gdp"):starts_with("x2013")) %>% 
+#   # step_interact(terms = ~ starts_with("income"):starts_with("x2013"))
+#   # step_interact(terms = ~ starts_with("C01"):starts_with("x2013_code"))
+
+workflow <- workflow() %>% 
+  add_recipe(rec) %>% 
+  add_model(spec)
+```
+
+
+```{r}
+train %>% dim()
+rec %>% prep() %>% juice() %>% dim()
+```
+
+
+## Without Tuning
+
+```{r}
+# Without Tuning
+fit <- workflow %>% 
+  fit_resamples(resamples = folds, control = control_grid(verbose = TRUE))
+show_notes(.Last.tune.result)
+```
+
+```{r}
+fit %>% collect_metrics()
+```
+
+```{r}
+fitted_workflow <- workflow %>% fit(train)
+```
+
+```{r}
+pred <- fitted_workflow %>% predict(new_data = test)
+```
+
+```{r}
+pred <- test %>% 
+  select(id) %>% 
+  bind_cols(pred)
+```
+
+```{r}
+write_csv(pred, "pred.csv")
+```
+
+## With Tuning
+
+```{r}
+# Random Tuning Grid
+set.seed(223)
+
+# grid <- grid_random(parameters(spec), size = 30)
+# grid <- grid_regular(parameters(spec),
+#                      levels = c(cost = 10, rbf_sigma = 10, margin = 10),
+#                      filter = cost >= 10)
+
+grid <- crossing(
+  cost = seq(20, 70, 5),
+  rbf_sigma = 0.005,
+  margin = 0.01
+)
+
+grid
+```
+
+```{r}
+fit <- workflow %>% 
+  tune_grid(resamples = folds,
+            grid = grid,
+            control = control_grid(verbose = TRUE))
+show_notes(.Last.tune.result)
+```
+
+```{r}
+fit %>% collect_metrics() %>% arrange(mean) %>% filter(.metric == "rmse")
+```
+
+```{r}
+best_params <- fit %>%
+  select_best(metric = "rmse") 
+
+best_workflow <- workflow %>% 
+  finalize_workflow(best_params)
+
+best_workflow
+```
+
+
+```{r}
+fitted_workflow <- best_workflow %>% fit(train)
+pred <- fitted_workflow %>% predict(new_data = test)
+```
+
+```{r}
+pred <- test %>% 
+  select(id) %>% 
+  bind_cols(pred)
+write_csv(pred, "pred.csv")
+```
+
+```{r}
+pred
+```
